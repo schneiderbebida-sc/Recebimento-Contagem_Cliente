@@ -46,7 +46,7 @@
 
 <body>
 
-<h2>📦 Recebimento-Contagem</h2>
+<h2>📦 Gestão de Estoque</h2>
 
 <div class="container">
     <label style="display:block; text-align:left; font-size:14px; font-weight:bold; color:#555;">Finalidade do Registro:</label>
@@ -76,7 +76,7 @@
     </div>
 
     <button class="btn-whatsapp" onclick="mostrarModal()">📲 Enviar via WhatsApp</button>
-    <button class="btn-limpar" onclick="limparInventario()">🗑️ Limpar Tudo</button>
+    <button class="btn-limpar" onclick="limparInventario()">🗑️ Limpar Lista de Itens</button>
 </div>
 
 <div id="modal-envio">
@@ -87,7 +87,7 @@
         <input type="text" id="cnpj_empresa" placeholder="00.000.000/0000-00" inputmode="numeric">
         
         <label class="label-modal">Nome do Conferente:</label>
-        <input type="text" id="nome_conferente" placeholder="Quem está recebendo?">
+        <input type="text" id="nome_conferente" placeholder="Seu nome completo">
         
         <button class="btn-whatsapp" onclick="processarEnvio()">Enviar Agora</button>
         <button style="background:#6c757d;" onclick="fecharModal()">Voltar</button>
@@ -95,9 +95,8 @@
 </div>
 
 <script>
-// Base de dados de produtos
 const produtos = [
- { codigo: "0000", barras: "7894900030013", descricao: "FANTA LARANJA  350ML" },
+        { codigo: "0000", barras: "7894900030013", descricao: "FANTA LARANJA  350ML" },
         { codigo: "00000", barras: "7894900700015", descricao: "COCA 0 LT 350ML" },
         { codigo: "00002", barras: "7894900701517", descricao: "COCA 0 2L" },
         { codigo: "01059", barras: "7896336002862", descricao: "AMENDOIN CROKISSIMO 90G" },
@@ -390,152 +389,165 @@ const produtos = [
         { codigo: "98921859", barras: "8000254003965", descricao: "WAVE ROSSO" },
         { codigo: "995", barras: "50196364", descricao: "WHISKY BUCHANANS 1L" },
         { codigo: "999", barras: "5000281004020", descricao: "WHISKY OLD PARR 1L" }
-        ];
-	
-	let inventario = [];
-	
-	window.onload = function() {
-	    const salvos = localStorage.getItem('inventario_schneider');
-	    if (salvos) {
-	        inventario = JSON.parse(salvos);
-	        atualizarLista();
-	    }
-	};
-	
-	function salvar() {
-	    localStorage.setItem('inventario_schneider', JSON.stringify(inventario));
-	}
-	
-	function buscar() {
-	    let termo = document.getElementById("busca").value.toLowerCase();
-	    let resDiv = document.getElementById("resultados");
-	    resDiv.innerHTML = "";
-	    if (termo.length < 2) return;
-	
-	    produtos.filter(p => p.descricao.toLowerCase().includes(termo) || p.barras.includes(termo))
-	        .slice(0, 5).forEach(p => {
-	            let div = document.createElement("div");
-	            div.className = "resultado-item";
-	            div.innerHTML = `<strong>${p.descricao}</strong><br><small>${p.barras}</small>`;
-	            div.onclick = () => selecionar(p);
-	            resDiv.appendChild(div);
-	        });
-	}
-	
-	function selecionar(p) {
-	    document.getElementById("barras").value = p.barras;
-	    document.getElementById("descricao").value = p.descricao;
-	    document.getElementById("resultados").innerHTML = "";
-	    document.getElementById("busca").value = "";
-	    document.getElementById("quantidade").focus();
-	}
-	
-	function adicionar() {
-	    let desc = document.getElementById("descricao").value;
-	    let qtd = document.getElementById("quantidade").value;
-	    let barras = document.getElementById("barras").value;
-	
-	    if (!desc || !qtd || qtd <= 0) {
-	        alert("Selecione um produto e a quantidade correta!");
-	        return;
-	    }
-	
-	    inventario.push({ descricao: desc, quantidade: qtd, barras: barras });
-	    salvar();
-	    atualizarLista();
-	    
-	    document.getElementById("descricao").value = "";
-	    document.getElementById("barras").value = "";
-	    document.getElementById("quantidade").value = "";
-	}
-	
-	function atualizarLista() {
-	    let listaDiv = document.getElementById("lista");
-	    listaDiv.innerHTML = "";
-	    inventario.forEach((item, index) => {
-	        listaDiv.innerHTML += `<div>${index + 1}. ${item.descricao} | Qtd: ${item.quantidade}</div>`;
-	    });
-	}
-	
-	function mostrarModal() {
-	    if (inventario.length === 0) return alert("Não há itens na lista para enviar!");
-	    document.getElementById("modal-envio").style.display = "block";
-	}
-	
-	function fecharModal() {
-	    document.getElementById("modal-envio").style.display = "none";
-	}
-	
-	function processarEnvio() {
-	    const cnpj = document.getElementById("cnpj_empresa").value;
-	    const nome = document.getElementById("nome_conferente").value;
-	    const operacao = document.getElementById("tipo_operacao").value;
-	
-	    if (!cnpj || !nome) {
-	        alert("Preencha o CNPJ e o Nome do Conferente!");
-	        return;
-	    }
-	
-	    enviarWhatsApp(cnpj, nome, operacao);
-	}
-	
-	function enviarWhatsApp(cnpj, nome, operacao) {
-	    const agora = new Date();
-	    const dataHora = agora.toLocaleDateString('pt-BR') + " às " + agora.toLocaleTimeString('pt-BR');
-	
-	    let texto = `*RELATÓRIO: ${operacao}*\n`;
-	    texto += `*UNIDADE:* Schneider Bebidas\n`;
-	    texto += `------------------------------------------\n`;
-	    texto += `🏢 *CNPJ CLIENTE:* ${cnpj}\n`;
-	    texto += `👤 *CONFERENTE:* ${nome}\n`;
-	    texto += `📅 *DATA/HORA:* ${dataHora}\n`;
-	    texto += `------------------------------------------\n\n`;
-	
-	    inventario.forEach(item => {
-	        texto += `• ${item.descricao}\n   QTD: ${item.quantidade} | EAN: ${item.barras}\n\n`;
-	    });
-	
-	    let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
-	    window.open(url, "_blank");
-	
-	    fecharModal();
-	
-	    setTimeout(() => {
-	        if (confirm("Relatório enviado! Deseja limpar a lista de conferência?")) {
-	            inventario = [];
-	            localStorage.removeItem('inventario_schneider');
-	            atualizarLista();
-	        }
-	    }, 2000);
-	}
-	
-	function limparInventario() {
-	    if (confirm("Isso apagará todos os itens da lista. Confirmar?")) {
-	        inventario = [];
-	        localStorage.removeItem('inventario_schneider');
-	        atualizarLista();
-	    }
-	}
-	
-	function abrirCamera() {
-	    const reader = document.getElementById("reader");
-	    reader.style.display = "block";
-	    Quagga.init({
-	        inputStream: { name: "Live", type: "LiveStream", target: reader, constraints: { facingMode: "environment" } },
-	        decoder: { readers: ["ean_reader", "code_128_reader"] }
-	    }, (err) => {
-	        if (err) return alert("Erro ao acessar câmera: " + err);
-	        Quagga.start();
-	    });
-	    Quagga.onDetected((data) => {
-	        let p = produtos.find(p => p.barras === data.codeResult.code);
-	        if (p) { 
-	            selecionar(p); 
-	            Quagga.stop(); 
-	            reader.style.display = "none"; 
-	        }
-	    });
-	}
-	</script>
-	</body>
+];
+
+let inventario = [];
+
+// Carrega os dados ao abrir a página
+window.onload = function() {
+    // Carregar itens da lista
+    const salvos = localStorage.getItem('inventario_schneider');
+    if (salvos) {
+        inventario = JSON.parse(salvos);
+        atualizarLista();
+    }
+
+    // Carregar dados da empresa/conferente salvos anteriormente
+    const cnpjSalvo = localStorage.getItem('cnpj_ultimo');
+    const nomeSalvo = localStorage.getItem('nome_ultimo');
+    
+    if (cnpjSalvo) document.getElementById("cnpj_empresa").value = cnpjSalvo;
+    if (nomeSalvo) document.getElementById("nome_conferente").value = nomeSalvo;
+};
+
+function salvarItens() {
+    localStorage.setItem('inventario_schneider', JSON.stringify(inventario));
+}
+
+function buscar() {
+    let termo = document.getElementById("busca").value.toLowerCase();
+    let resDiv = document.getElementById("resultados");
+    resDiv.innerHTML = "";
+    if (termo.length < 2) return;
+
+    produtos.filter(p => p.descricao.toLowerCase().includes(termo) || p.barras.includes(termo))
+        .slice(0, 5).forEach(p => {
+            let div = document.createElement("div");
+            div.className = "resultado-item";
+            div.innerHTML = `<strong>${p.descricao}</strong><br><small>${p.barras}</small>`;
+            div.onclick = () => selecionar(p);
+            resDiv.appendChild(div);
+        });
+}
+
+function selecionar(p) {
+    document.getElementById("barras").value = p.barras;
+    document.getElementById("descricao").value = p.descricao;
+    document.getElementById("resultados").innerHTML = "";
+    document.getElementById("busca").value = "";
+    document.getElementById("quantidade").focus();
+}
+
+function adicionar() {
+    let desc = document.getElementById("descricao").value;
+    let qtd = document.getElementById("quantidade").value;
+    let barras = document.getElementById("barras").value;
+
+    if (!desc || !qtd || qtd <= 0) {
+        alert("Selecione um produto e a quantidade correta!");
+        return;
+    }
+
+    inventario.push({ descricao: desc, quantidade: qtd, barras: barras });
+    salvarItens();
+    atualizarLista();
+    
+    document.getElementById("descricao").value = "";
+    document.getElementById("barras").value = "";
+    document.getElementById("quantidade").value = "";
+}
+
+function atualizarLista() {
+    let listaDiv = document.getElementById("lista");
+    listaDiv.innerHTML = "";
+    inventario.forEach((item, index) => {
+        listaDiv.innerHTML += `<div>${index + 1}. ${item.descricao} | Qtd: ${item.quantidade}</div>`;
+    });
+}
+
+function mostrarModal() {
+    if (inventario.length === 0) return alert("Não há itens na lista para enviar!");
+    document.getElementById("modal-envio").style.display = "block";
+}
+
+function fecharModal() {
+    document.getElementById("modal-envio").style.display = "none";
+}
+
+function processarEnvio() {
+    const cnpj = document.getElementById("cnpj_empresa").value;
+    const nome = document.getElementById("nome_conferente").value;
+    const operacao = document.getElementById("tipo_operacao").value;
+
+    if (!cnpj || !nome) {
+        alert("Preencha o CNPJ e o Nome do Conferente!");
+        return;
+    }
+
+    // SALVA OU ATUALIZA OS DADOS NO NAVEGADOR PARA O PRÓXIMO USO
+    localStorage.setItem('cnpj_ultimo', cnpj);
+    localStorage.setItem('nome_ultimo', nome);
+
+    enviarWhatsApp(cnpj, nome, operacao);
+}
+
+function enviarWhatsApp(cnpj, nome, operacao) {
+    const agora = new Date();
+    const dataHora = agora.toLocaleDateString('pt-BR') + " às " + agora.toLocaleTimeString('pt-BR');
+
+    let texto = `*RELATÓRIO: ${operacao}*\n`;
+    texto += `*UNIDADE:* Schneider Bebidas\n`;
+    texto += `------------------------------------------\n`;
+    texto += `🏢 *CNPJ CLIENTE:* ${cnpj}\n`;
+    texto += `👤 *CONFERENTE:* ${nome}\n`;
+    texto += `📅 *DATA/HORA:* ${dataHora}\n`;
+    texto += `------------------------------------------\n\n`;
+
+    inventario.forEach(item => {
+        texto += `• ${item.descricao}\n   QTD: ${item.quantidade} | EAN: ${item.barras}\n\n`;
+    });
+
+    let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
+    window.open(url, "_blank");
+
+    fecharModal();
+
+    setTimeout(() => {
+        if (confirm("Relatório enviado! Deseja limpar a lista de produtos agora?")) {
+            inventario = [];
+            localStorage.removeItem('inventario_schneider');
+            atualizarLista();
+        }
+    }, 2000);
+}
+
+function limparInventario() {
+    if (confirm("Isso apagará todos os itens da lista. Confirmar?")) {
+        inventario = [];
+        localStorage.removeItem('inventario_schneider');
+        atualizarLista();
+    }
+}
+
+function abrirCamera() {
+    const reader = document.getElementById("reader");
+    reader.style.display = "block";
+    Quagga.init({
+        inputStream: { name: "Live", type: "LiveStream", target: reader, constraints: { facingMode: "environment" } },
+        decoder: { readers: ["ean_reader", "code_128_reader"] }
+    }, (err) => {
+        if (err) return alert("Erro ao acessar câmera: " + err);
+        Quagga.start();
+    });
+    Quagga.onDetected((data) => {
+        let p = produtos.find(p => p.barras === data.codeResult.code);
+        if (p) { 
+            selecionar(p); 
+            Quagga.stop(); 
+            reader.style.display = "none"; 
+        }
+    });
+}
+</script>
+</body>
 </html>
