@@ -11,14 +11,32 @@
         body { font-family: sans-serif; background: #e9ecef; text-align: center; padding: 10px; }
         .container { background: #fff; margin: 0 auto; padding: 20px; border-radius: 15px; max-width: 450px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         input, button { padding: 14px; margin: 8px 0; width: 100%; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; border: none; font-weight: bold; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-whatsapp { background-color: #25d366; }
         .btn-limpar { background-color: #dc3545; margin-top: 15px; }
-        #reader { width: 100%; display: none; border: 2px solid #007bff; }
+        #reader { width: 100%; display: none; border: 2px solid #007bff; margin-bottom: 10px; }
         #reader video { width: 100%; height: auto; }
-        .resultado-item { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .resultado-item { padding: 12px; border-bottom: 1px solid #eee; text-align: left; cursor: pointer; }
         .lista-container { text-align: left; margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
         .lista { max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+
+        /* Estilos do Modal */
+        #modal-envio { 
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; top: 0; width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+        .modal-content { 
+            background-color: white; 
+            margin: 15% auto; 
+            padding: 20px; 
+            border-radius: 15px; 
+            width: 85%; 
+            max-width: 400px; 
+        }
+        .modal-content h3 { margin-top: 0; color: #333; }
     </style>
 </head>
 
@@ -43,15 +61,25 @@
 
     <input type="number" id="quantidade" placeholder="Quantidade" inputmode="numeric">
     
-    <button onclick="adicionar()">➕ Adicionar</button>
+    <button onclick="adicionar()">➕ Adicionar Item</button>
     
     <div class="lista-container">
         <strong>Itens (Formato Exportação):</strong>
         <div class="lista" id="lista"></div>
     </div>
 
-    <button class="btn-whatsapp" onclick="enviarWhatsApp()">📲 Enviar via WhatsApp</button>
+    <button class="btn-whatsapp" onclick="mostrarModal()">📲 Enviar Relatório</button>
     <button class="btn-limpar" onclick="limparInventario()">🗑️ Reiniciar Inventário</button>
+</div>
+
+<div id="modal-envio">
+    <div class="modal-content">
+        <h3>Dados do Recebimento</h3>
+        <input type="text" id="cnpj_empresa" placeholder="CNPJ da Empresa" inputmode="numeric">
+        <input type="text" id="tel_conferente" placeholder="Seu Telefone (WhatsApp)" inputmode="tel">
+        <button class="btn-whatsapp" onclick="processarEnvio()">Confirmar e Enviar</button>
+        <button style="background:#6c757d;" onclick="fecharModal()">Cancelar</button>
+    </div>
 </div>
 
 <script>
@@ -415,24 +443,45 @@ function atualizarLista() {
     let listaDiv = document.getElementById("lista");
     listaDiv.innerHTML = "";
     inventario.forEach(item => {
-        // Exibição na tela seguindo o formato solicitado
         listaDiv.innerHTML += `<div>Cód|${item.codigo}|${item.descricao}|Qtd|${item.quantidade}</div>`;
     });
 }
 
-function limparInventario() {
-    if (confirm("Limpar todo o inventário?")) {
-        inventario = [];
-        localStorage.removeItem('inventario_schneider');
-        atualizarLista();
-    }
+// Funções do Modal
+function mostrarModal() {
+    if (inventario.length === 0) return alert("Adicione itens antes de enviar!");
+    document.getElementById("modal-envio").style.display = "block";
 }
 
-function enviarWhatsApp() {
-    if (inventario.length === 0) return alert("Lista vazia!");
+function fecharModal() {
+    document.getElementById("modal-envio").style.display = "none";
+}
 
-    // Montagem do texto no formato: Cód|00000|COCA 0 LT 350ML|Qtd|1
-    let texto = "";
+function processarEnvio() {
+    const cnpj = document.getElementById("cnpj_empresa").value;
+    const telefone = document.getElementById("tel_conferente").value;
+
+    if (!cnpj || !telefone) {
+        alert("Por favor, preencha o CNPJ e o seu telefone!");
+        return;
+    }
+
+    enviarWhatsApp(cnpj, telefone);
+}
+
+function enviarWhatsApp(cnpj, tel) {
+    const agora = new Date();
+    const dataHora = agora.toLocaleDateString('pt-BR') + " às " + agora.toLocaleTimeString('pt-BR');
+
+    // Cabeçalho do Relatório
+    let texto = `*RELATÓRIO DE RECEBIMENTO - SCHNEIDER BEBIDAS*\n`;
+    texto += `------------------------------------------\n`;
+    texto += `🏢 *CNPJ Empresa:* ${cnpj}\n`;
+    texto += `👤 *Conferente:* ${tel}\n`;
+    texto += `📅 *Data/Hora:* ${dataHora}\n`;
+    texto += `------------------------------------------\n\n`;
+
+    // Itens
     inventario.forEach(item => {
         texto += `Cód|${item.codigo}|${item.descricao}|Qtd|${item.quantidade}\n`;
     });
@@ -440,13 +489,23 @@ function enviarWhatsApp() {
     let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
     window.open(url, "_blank");
 
+    fecharModal();
+
     setTimeout(() => {
-        if (confirm("Deseja limpar a lista agora que enviou?")) {
+        if (confirm("Deseja limpar a lista agora que o relatório foi enviado?")) {
             inventario = [];
             localStorage.removeItem('inventario_schneider');
             atualizarLista();
         }
     }, 2000);
+}
+
+function limparInventario() {
+    if (confirm("Limpar todo o inventário atual?")) {
+        inventario = [];
+        localStorage.removeItem('inventario_schneider');
+        atualizarLista();
+    }
 }
 
 function abrirCamera() {
@@ -456,12 +515,16 @@ function abrirCamera() {
         inputStream: { name: "Live", type: "LiveStream", target: reader, constraints: { facingMode: "environment" } },
         decoder: { readers: ["ean_reader", "code_128_reader"] }
     }, (err) => {
-        if (err) return alert(err);
+        if (err) return alert("Erro ao abrir câmera: " + err);
         Quagga.start();
     });
     Quagga.onDetected((data) => {
         let p = produtos.find(p => p.barras === data.codeResult.code);
-        if (p) { selecionar(p); Quagga.stop(); reader.style.display = "none"; }
+        if (p) { 
+            selecionar(p); 
+            Quagga.stop(); 
+            reader.style.display = "none"; 
+        }
     });
 }
 </script>
