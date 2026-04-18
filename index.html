@@ -393,19 +393,14 @@ const produtos = [
 
 let inventario = [];
 
-// Carrega os dados ao abrir a página
 window.onload = function() {
-    // Carregar itens da lista
     const salvos = localStorage.getItem('inventario_schneider');
     if (salvos) {
         inventario = JSON.parse(salvos);
         atualizarLista();
     }
-
-    // Carregar dados da empresa/conferente salvos anteriormente
     const cnpjSalvo = localStorage.getItem('cnpj_ultimo');
     const nomeSalvo = localStorage.getItem('nome_ultimo');
-    
     if (cnpjSalvo) document.getElementById("cnpj_empresa").value = cnpjSalvo;
     if (nomeSalvo) document.getElementById("nome_conferente").value = nomeSalvo;
 };
@@ -461,7 +456,7 @@ function atualizarLista() {
     let listaDiv = document.getElementById("lista");
     listaDiv.innerHTML = "";
     inventario.forEach((item, index) => {
-        listaDiv.innerHTML += `<div>${index + 1}. ${item.descricao} | Qtd: ${item.quantidade}</div>`;
+        listaDiv.innerHTML += `<div>${item.descricao}|QTD|${item.quantidade}|EAN: ${item.barras}</div>`;
     });
 }
 
@@ -484,7 +479,6 @@ function processarEnvio() {
         return;
     }
 
-    // SALVA OU ATUALIZA OS DADOS NO NAVEGADOR PARA O PRÓXIMO USO
     localStorage.setItem('cnpj_ultimo', cnpj);
     localStorage.setItem('nome_ultimo', nome);
 
@@ -503,8 +497,9 @@ function enviarWhatsApp(cnpj, nome, operacao) {
     texto += `📅 *DATA/HORA:* ${dataHora}\n`;
     texto += `------------------------------------------\n\n`;
 
+    // FORMATAÇÃO EM LINHA SEPARADA POR PIPE
     inventario.forEach(item => {
-        texto += `• ${item.descricao}\n   QTD: ${item.quantidade} | EAN: ${item.barras}\n\n`;
+        texto += `${item.descricao}|QTD|${item.quantidade}|EAN: ${item.barras}\n`;
     });
 
     let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
