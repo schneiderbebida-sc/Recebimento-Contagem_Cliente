@@ -3,89 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventário Mobile - Schneider Bebidas</title>
+    <title>Sistema de Inventário - Schneider Bebidas</title>
 
     <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
 
     <style>
-        body { font-family: sans-serif; background: #e9ecef; text-align: center; padding: 10px; }
-        .container { background: #fff; margin: 0 auto; padding: 20px; border-radius: 15px; max-width: 450px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input, button { padding: 14px; margin: 8px 0; width: 100%; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+        body { font-family: sans-serif; background: #f0f2f5; text-align: center; padding: 10px; color: #333; }
+        .container { background: #fff; margin: 0 auto; padding: 20px; border-radius: 15px; max-width: 450px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input, select, button { padding: 14px; margin: 8px 0; width: 100%; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        select { background-color: #fff; border: 2px solid #007bff; font-weight: bold; }
         .btn-whatsapp { background-color: #25d366; }
         .btn-limpar { background-color: #dc3545; margin-top: 15px; }
-        #reader { width: 100%; display: none; border: 2px solid #007bff; margin-bottom: 10px; }
+        #reader { width: 100%; display: none; border: 2px solid #007bff; margin-bottom: 10px; border-radius: 8px; overflow: hidden; }
         #reader video { width: 100%; height: auto; }
-        .resultado-item { padding: 12px; border-bottom: 1px solid #eee; text-align: left; cursor: pointer; }
-        .lista-container { text-align: left; margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-        .lista { max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+        .resultado-item { padding: 12px; border-bottom: 1px solid #eee; text-align: left; cursor: pointer; background: #fafafa; }
+        .lista-container { text-align: left; margin-top: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
+        .lista { max-height: 200px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.4; }
 
         /* Estilos do Modal */
         #modal-envio { 
             display: none; 
             position: fixed; 
-            z-index: 100; 
+            z-index: 1000; 
             left: 0; top: 0; width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.5); 
+            background-color: rgba(0,0,0,0.6); 
+            backdrop-filter: blur(3px);
         }
         .modal-content { 
             background-color: white; 
             margin: 15% auto; 
-            padding: 20px; 
-            border-radius: 15px; 
+            padding: 25px; 
+            border-radius: 20px; 
             width: 85%; 
             max-width: 400px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        .modal-content h3 { margin-top: 0; color: #333; }
+        .label-modal { display: block; text-align: left; font-size: 14px; font-weight: bold; margin-top: 10px; color: #555; }
     </style>
 </head>
 
 <body>
 
-<h2>📦 Recebimento de produtos</h2>
+<h2>📦 Gestão de Estoque</h2>
 
 <div class="container">
-    <input type="text" id="busca" placeholder="🔍 Buscar produto..." oninput="buscar()">
+    <label style="display:block; text-align:left; font-size:14px; font-weight:bold; color:#555;">Finalidade do Registro:</label>
+    <select id="tipo_operacao">
+        <option value="RECEBIMENTO DE PRODUTO">📥 Recebimento de Produto</option>
+        <option value="CONTAGEM PÓS VENDA">📊 Contagem Pós Venda</option>
+    </select>
+
+    <input type="text" id="busca" placeholder="🔍 Buscar produto por nome..." oninput="buscar()">
     <div id="resultados"></div>
 
-    <button onclick="abrirCamera()">📷 Ler Código de Barras</button>
+    <button onclick="abrirCamera()">📷 Escanear Código de Barras</button>
     <div id="reader"></div>
 
     <hr>
 
-    <input type="text" id="descricao" placeholder="Descrição do Produto" readonly>
-    <div style="display: flex; gap: 5px;">
-        <input type="text" id="codigo" placeholder="Cód" readonly>
-        <input type="text" id="barras" placeholder="Barras" readonly>
-    </div>
+    <input type="text" id="descricao" placeholder="Produto Selecionado" readonly style="background: #f8f9fa;">
+    <input type="text" id="barras" placeholder="Código EAN" readonly style="background: #f8f9fa;">
 
     <input type="number" id="quantidade" placeholder="Quantidade" inputmode="numeric">
     
-    <button onclick="adicionar()">➕ Adicionar Item</button>
+    <button onclick="adicionar()">➕ Adicionar à Lista</button>
     
     <div class="lista-container">
-        <strong>Itens (Formato Exportação):</strong>
+        <strong>Itens Confirmados:</strong>
         <div class="lista" id="lista"></div>
     </div>
 
-    <button class="btn-whatsapp" onclick="mostrarModal()">📲 Enviar Relatório</button>
-    <button class="btn-limpar" onclick="limparInventario()">🗑️ Reiniciar Inventário</button>
+    <button class="btn-whatsapp" onclick="mostrarModal()">📲 Enviar via WhatsApp</button>
+    <button class="btn-limpar" onclick="limparInventario()">🗑️ Limpar Tudo</button>
 </div>
 
 <div id="modal-envio">
     <div class="modal-content">
-        <h3>Dados do Recebimento</h3>
-        <input type="text" id="cnpj_empresa" placeholder="CNPJ da Empresa" inputmode="numeric">
-        <input type="text" id="tel_conferente" placeholder="Seu Telefone (WhatsApp)" inputmode="tel">
-        <button class="btn-whatsapp" onclick="processarEnvio()">Confirmar e Enviar</button>
-        <button style="background:#6c757d;" onclick="fecharModal()">Cancelar</button>
+        <h3 style="margin-top:0;">Finalizar Envio</h3>
+        
+        <label class="label-modal">CNPJ da Empresa:</label>
+        <input type="text" id="cnpj_empresa" placeholder="00.000.000/0000-00" inputmode="numeric">
+        
+        <label class="label-modal">Nome do Conferente:</label>
+        <input type="text" id="nome_conferente" placeholder="Quem está recebendo?">
+        
+        <button class="btn-whatsapp" onclick="processarEnvio()">Enviar Agora</button>
+        <button style="background:#6c757d;" onclick="fecharModal()">Voltar</button>
     </div>
 </div>
 
 <script>
-// ===== BASE DE PRODUTOS (exemplo – mantenha sua lista completa) =====
+// Base de dados de produtos
 const produtos = [
-        { codigo: "0000", barras: "7894900030013", descricao: "FANTA LARANJA  350ML" },
+ { codigo: "0000", barras: "7894900030013", descricao: "FANTA LARANJA  350ML" },
         { codigo: "00000", barras: "7894900700015", descricao: "COCA 0 LT 350ML" },
         { codigo: "00002", barras: "7894900701517", descricao: "COCA 0 2L" },
         { codigo: "01059", barras: "7896336002862", descricao: "AMENDOIN CROKISSIMO 90G" },
@@ -378,155 +390,152 @@ const produtos = [
         { codigo: "98921859", barras: "8000254003965", descricao: "WAVE ROSSO" },
         { codigo: "995", barras: "50196364", descricao: "WHISKY BUCHANANS 1L" },
         { codigo: "999", barras: "5000281004020", descricao: "WHISKY OLD PARR 1L" }
-];
-
-let inventario = [];
-
-window.onload = function() {
-    const salvos = localStorage.getItem('inventario_schneider');
-    if (salvos) {
-        inventario = JSON.parse(salvos);
-        atualizarLista();
-    }
-};
-
-function salvar() {
-    localStorage.setItem('inventario_schneider', JSON.stringify(inventario));
-}
-
-function buscar() {
-    let termo = document.getElementById("busca").value.toLowerCase();
-    let resDiv = document.getElementById("resultados");
-    resDiv.innerHTML = "";
-    if (termo.length < 2) return;
-
-    produtos.filter(p => p.descricao.toLowerCase().includes(termo) || p.barras.includes(termo))
-        .slice(0, 5).forEach(p => {
-            let div = document.createElement("div");
-            div.className = "resultado-item";
-            div.innerHTML = `<strong>${p.descricao}</strong>`;
-            div.onclick = () => selecionar(p);
-            resDiv.appendChild(div);
-        });
-}
-
-function selecionar(p) {
-    document.getElementById("codigo").value = p.codigo;
-    document.getElementById("barras").value = p.barras;
-    document.getElementById("descricao").value = p.descricao;
-    document.getElementById("resultados").innerHTML = "";
-    document.getElementById("busca").value = "";
-    document.getElementById("quantidade").focus();
-}
-
-function adicionar() {
-    let cod = document.getElementById("codigo").value;
-    let desc = document.getElementById("descricao").value;
-    let qtd = document.getElementById("quantidade").value;
-
-    if (!desc || !qtd || qtd <= 0) {
-        alert("Preencha o produto e a quantidade!");
-        return;
-    }
-
-    inventario.push({ codigo: cod, descricao: desc, quantidade: qtd });
-    salvar();
-    atualizarLista();
-    
-    document.getElementById("descricao").value = "";
-    document.getElementById("codigo").value = "";
-    document.getElementById("barras").value = "";
-    document.getElementById("quantidade").value = "";
-}
-
-function atualizarLista() {
-    let listaDiv = document.getElementById("lista");
-    listaDiv.innerHTML = "";
-    inventario.forEach(item => {
-        listaDiv.innerHTML += `<div>Cód|${item.codigo}|${item.descricao}|Qtd|${item.quantidade}</div>`;
-    });
-}
-
-// Funções do Modal
-function mostrarModal() {
-    if (inventario.length === 0) return alert("Adicione itens antes de enviar!");
-    document.getElementById("modal-envio").style.display = "block";
-}
-
-function fecharModal() {
-    document.getElementById("modal-envio").style.display = "none";
-}
-
-function processarEnvio() {
-    const cnpj = document.getElementById("cnpj_empresa").value;
-    const telefone = document.getElementById("tel_conferente").value;
-
-    if (!cnpj || !telefone) {
-        alert("Por favor, preencha o CNPJ e o seu telefone!");
-        return;
-    }
-
-    enviarWhatsApp(cnpj, telefone);
-}
-
-function enviarWhatsApp(cnpj, tel) {
-    const agora = new Date();
-    const dataHora = agora.toLocaleDateString('pt-BR') + " às " + agora.toLocaleTimeString('pt-BR');
-
-    // Cabeçalho do Relatório
-    let texto = `*RELATÓRIO DE RECEBIMENTO - SCHNEIDER BEBIDAS*\n`;
-    texto += `------------------------------------------\n`;
-    texto += `🏢 *CNPJ Empresa:* ${cnpj}\n`;
-    texto += `👤 *Conferente:* ${tel}\n`;
-    texto += `📅 *Data/Hora:* ${dataHora}\n`;
-    texto += `------------------------------------------\n\n`;
-
-    // Itens
-    inventario.forEach(item => {
-        texto += `Cód|${item.codigo}|${item.descricao}|Qtd|${item.quantidade}\n`;
-    });
-
-    let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
-    window.open(url, "_blank");
-
-    fecharModal();
-
-    setTimeout(() => {
-        if (confirm("Deseja limpar a lista agora que o relatório foi enviado?")) {
-            inventario = [];
-            localStorage.removeItem('inventario_schneider');
-            atualizarLista();
-        }
-    }, 2000);
-}
-
-function limparInventario() {
-    if (confirm("Limpar todo o inventário atual?")) {
-        inventario = [];
-        localStorage.removeItem('inventario_schneider');
-        atualizarLista();
-    }
-}
-
-function abrirCamera() {
-    const reader = document.getElementById("reader");
-    reader.style.display = "block";
-    Quagga.init({
-        inputStream: { name: "Live", type: "LiveStream", target: reader, constraints: { facingMode: "environment" } },
-        decoder: { readers: ["ean_reader", "code_128_reader"] }
-    }, (err) => {
-        if (err) return alert("Erro ao abrir câmera: " + err);
-        Quagga.start();
-    });
-    Quagga.onDetected((data) => {
-        let p = produtos.find(p => p.barras === data.codeResult.code);
-        if (p) { 
-            selecionar(p); 
-            Quagga.stop(); 
-            reader.style.display = "none"; 
-        }
-    });
-}
-</script>
-</body>
+        ];
+	
+	let inventario = [];
+	
+	window.onload = function() {
+	    const salvos = localStorage.getItem('inventario_schneider');
+	    if (salvos) {
+	        inventario = JSON.parse(salvos);
+	        atualizarLista();
+	    }
+	};
+	
+	function salvar() {
+	    localStorage.setItem('inventario_schneider', JSON.stringify(inventario));
+	}
+	
+	function buscar() {
+	    let termo = document.getElementById("busca").value.toLowerCase();
+	    let resDiv = document.getElementById("resultados");
+	    resDiv.innerHTML = "";
+	    if (termo.length < 2) return;
+	
+	    produtos.filter(p => p.descricao.toLowerCase().includes(termo) || p.barras.includes(termo))
+	        .slice(0, 5).forEach(p => {
+	            let div = document.createElement("div");
+	            div.className = "resultado-item";
+	            div.innerHTML = `<strong>${p.descricao}</strong><br><small>${p.barras}</small>`;
+	            div.onclick = () => selecionar(p);
+	            resDiv.appendChild(div);
+	        });
+	}
+	
+	function selecionar(p) {
+	    document.getElementById("barras").value = p.barras;
+	    document.getElementById("descricao").value = p.descricao;
+	    document.getElementById("resultados").innerHTML = "";
+	    document.getElementById("busca").value = "";
+	    document.getElementById("quantidade").focus();
+	}
+	
+	function adicionar() {
+	    let desc = document.getElementById("descricao").value;
+	    let qtd = document.getElementById("quantidade").value;
+	    let barras = document.getElementById("barras").value;
+	
+	    if (!desc || !qtd || qtd <= 0) {
+	        alert("Selecione um produto e a quantidade correta!");
+	        return;
+	    }
+	
+	    inventario.push({ descricao: desc, quantidade: qtd, barras: barras });
+	    salvar();
+	    atualizarLista();
+	    
+	    document.getElementById("descricao").value = "";
+	    document.getElementById("barras").value = "";
+	    document.getElementById("quantidade").value = "";
+	}
+	
+	function atualizarLista() {
+	    let listaDiv = document.getElementById("lista");
+	    listaDiv.innerHTML = "";
+	    inventario.forEach((item, index) => {
+	        listaDiv.innerHTML += `<div>${index + 1}. ${item.descricao} | Qtd: ${item.quantidade}</div>`;
+	    });
+	}
+	
+	function mostrarModal() {
+	    if (inventario.length === 0) return alert("Não há itens na lista para enviar!");
+	    document.getElementById("modal-envio").style.display = "block";
+	}
+	
+	function fecharModal() {
+	    document.getElementById("modal-envio").style.display = "none";
+	}
+	
+	function processarEnvio() {
+	    const cnpj = document.getElementById("cnpj_empresa").value;
+	    const nome = document.getElementById("nome_conferente").value;
+	    const operacao = document.getElementById("tipo_operacao").value;
+	
+	    if (!cnpj || !nome) {
+	        alert("Preencha o CNPJ e o Nome do Conferente!");
+	        return;
+	    }
+	
+	    enviarWhatsApp(cnpj, nome, operacao);
+	}
+	
+	function enviarWhatsApp(cnpj, nome, operacao) {
+	    const agora = new Date();
+	    const dataHora = agora.toLocaleDateString('pt-BR') + " às " + agora.toLocaleTimeString('pt-BR');
+	
+	    let texto = `*RELATÓRIO: ${operacao}*\n`;
+	    texto += `*UNIDADE:* Schneider Bebidas\n`;
+	    texto += `------------------------------------------\n`;
+	    texto += `🏢 *CNPJ CLIENTE:* ${cnpj}\n`;
+	    texto += `👤 *CONFERENTE:* ${nome}\n`;
+	    texto += `📅 *DATA/HORA:* ${dataHora}\n`;
+	    texto += `------------------------------------------\n\n`;
+	
+	    inventario.forEach(item => {
+	        texto += `• ${item.descricao}\n   QTD: ${item.quantidade} | EAN: ${item.barras}\n\n`;
+	    });
+	
+	    let url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
+	    window.open(url, "_blank");
+	
+	    fecharModal();
+	
+	    setTimeout(() => {
+	        if (confirm("Relatório enviado! Deseja limpar a lista de conferência?")) {
+	            inventario = [];
+	            localStorage.removeItem('inventario_schneider');
+	            atualizarLista();
+	        }
+	    }, 2000);
+	}
+	
+	function limparInventario() {
+	    if (confirm("Isso apagará todos os itens da lista. Confirmar?")) {
+	        inventario = [];
+	        localStorage.removeItem('inventario_schneider');
+	        atualizarLista();
+	    }
+	}
+	
+	function abrirCamera() {
+	    const reader = document.getElementById("reader");
+	    reader.style.display = "block";
+	    Quagga.init({
+	        inputStream: { name: "Live", type: "LiveStream", target: reader, constraints: { facingMode: "environment" } },
+	        decoder: { readers: ["ean_reader", "code_128_reader"] }
+	    }, (err) => {
+	        if (err) return alert("Erro ao acessar câmera: " + err);
+	        Quagga.start();
+	    });
+	    Quagga.onDetected((data) => {
+	        let p = produtos.find(p => p.barras === data.codeResult.code);
+	        if (p) { 
+	            selecionar(p); 
+	            Quagga.stop(); 
+	            reader.style.display = "none"; 
+	        }
+	    });
+	}
+	</script>
+	</body>
 </html>
